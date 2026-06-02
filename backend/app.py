@@ -269,6 +269,95 @@ def get_entry_by_mobile(mobile_number):
     }
     return jsonify({"found": True, "entry": formatted})
 
+def _patient_from_telecaller_row(serialized):
+    payload_raw = serialized.get("qr_payload")
+    if payload_raw:
+        try:
+            data = json.loads(payload_raw)
+            if isinstance(data, dict) and data.get("qrToken"):
+                return data
+        except (json.JSONDecodeError, TypeError):
+            pass
+
+    clinic = serialized.get("clinic_name") or serialized.get("city") or "Delhi Gate"
+    branch_defaults = {
+        "phone": "+91 98101 23456",
+        "address": "12, Netaji Subhash Marg, Daryaganj, near Delhi Gate Metro Station, New Delhi, 110002",
+        "locationLink": "https://maps.google.com/?q=Delhi+Gate+Metro+Station",
+    }
+
+    appt_date = serialized.get("appointment_date")
+    appt_slot = serialized.get("appointment_slot")
+    if appt_date and hasattr(appt_date, "isoformat"):
+        appt_date = appt_date.isoformat()[:10]
+    if appt_slot and hasattr(appt_slot, "strftime"):
+        appt_slot = appt_slot.strftime("%H:%M")
+
+    return {
+        "type": "softone_patient",
+        "version": 1,
+        "qrToken": serialized.get("qr_token") or serialized.get("id"),
+        "patientId": serialized.get("id"),
+        "patientName": serialized.get("patient_name"),
+        "mobileNumber": serialized.get("mobile_number"),
+        "city": serialized.get("city"),
+        "status": "appointment_booked" if serialized.get("appointment_booked") else "callback_requested",
+        "appointmentStatus": "booked" if serialized.get("appointment_booked") else "none",
+        "assignedBranch": clinic,
+        "appointmentDate": appt_date,
+        "appointmentSlot": appt_slot,
+        "notes": serialized.get("call_notes"),
+        "branchPhone": branch_defaults["phone"],
+        "branchAddress": branch_defaults["address"],
+        "googleLocation": branch_defaults["locationLink"],
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@app.route("/api/public/patient/<qr_token>", methods=["GET"])
+def public_patient_by_token(qr_token):
+    token = qr_token.strip()
+    if not token:
+        return jsonify({"found": False}), 400
+
+    entry = execute_query(
+        "SELECT * FROM telecaller_entries WHERE UPPER(qr_token) = UPPER(%s) LIMIT 1",
+        (token,),
+        fetch_one=True,
+    )
+    if entry:
+        patient = _patient_from_telecaller_row(serialize_row(entry))
+        return jsonify({"found": True, "patient": patient})
+
+    appt = execute_query(
+        "SELECT * FROM appointments WHERE UPPER(id) = UPPER(%s) LIMIT 1",
+        (token,),
+        fetch_one=True,
+    )
+    if appt:
+        row = serialize_row(appt)
+        appt_date = row.get("date")
+        if appt_date and hasattr(appt_date, "isoformat"):
+            appt_date = appt_date.isoformat()[:10]
+        patient = {
+            "type": "softone_patient",
+            "version": 1,
+            "qrToken": row.get("id"),
+            "patientId": row.get("id"),
+            "patientName": row.get("patient_name"),
+            "mobileNumber": row.get("mobile_number"),
+            "city": row.get("clinic_name"),
+            "assignedBranch": row.get("clinic_name"),
+            "appointmentDate": appt_date,
+            "appointmentSlot": row.get("slot"),
+            "appointmentStatus": row.get("status"),
+            "generatedAt": datetime.utcnow().isoformat() + "Z",
+        }
+        return jsonify({"found": True, "patient": patient})
+
+    return jsonify({"found": False})
+
+
 @app.route("/api/telecaller/by-token/<qr_token>", methods=["GET"])
 def get_entry_by_token(qr_token):
     entry = execute_query(

@@ -21,9 +21,10 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { APP_ROUTES } from "../routing/routeConfig";
+import { SoftoneLogo } from "../components/brand/SoftoneLogo";
 
 const ROUTE_ICONS: Record<string, any> = {
   "/": LayoutDashboard,
@@ -86,32 +87,22 @@ export function AppShell() {
       >
         <div className="sidebar-shell">
           <div className="brand sidebar-brand">
-            <div className="inline header-row">
-              <h2 className="text-xl font-bold tracking-tight text-blue-900">
-                {sidebarCollapsed ? "S" : "Softone ERP"}
-              </h2>
+            <div className="inline header-row items-center gap-2">
+              <Link
+                to="/"
+                className="flex-1 min-w-0 decoration-none"
+                title="Softone Hearing"
+              >
+                <SoftoneLogo collapsed={sidebarCollapsed} />
+              </Link>
               <button
-                className="sidebar-toggle icon-button"
+                className="sidebar-toggle icon-button shrink-0"
                 onClick={() => setSidebarCollapsed((prev) => !prev)}
                 type="button"
                 aria-label="Toggle sidebar"
               >
                 {sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
               </button>
-            </div>
-            <div className="sidebar-subtitle-holder">
-              <AnimatePresence>
-                {!sidebarCollapsed ? (
-                  <motion.p
-                    className="text-xs text-slate-500 font-medium"
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                  >
-                    Enterprise healthcare operations
-                  </motion.p>
-                ) : null}
-              </AnimatePresence>
             </div>
           </div>
 

@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { DataTable } from "../../components/erp/DataTable";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 import { useToast } from "../../layout/ToastProvider";
 import { useAuth } from "../../auth/AuthContext";
 import { api } from "../../services/api";
@@ -198,7 +199,7 @@ export function FrontOfficeDashboard() {
             {todayAppointments.map((entry) => (
               <tr key={entry.id}>
                 <td className="font-mono text-xs font-bold text-slate-500">{entry.id}</td>
-                <td className="font-bold text-slate-800">{entry.patientName}</td>
+                <td><PatientNameButton patient={entry} /></td>
                 <td className="text-slate-600 font-medium">{entry.mobileNumber}</td>
                 <td className="text-xs text-blue-600 font-bold">{entry.slot}</td>
                 <td>
@@ -227,7 +228,7 @@ export function FrontOfficeDashboard() {
           >
             {clinicQueue.map((entry) => (
               <tr key={entry.id}>
-                <td className="font-bold text-slate-800">{entry.patientName}</td>
+                <td><PatientNameButton patient={entry} /></td>
                 <td>
                   <span className={`badge ${entry.status === "waiting" ? "warn" : "ok"}`}>
                     {entry.status === "waiting" ? "Waiting in Lobby" : "In Cabinet"}

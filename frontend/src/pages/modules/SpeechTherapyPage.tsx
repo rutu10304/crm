@@ -2,6 +2,7 @@ import { useState } from "react";
 import { DataTable } from "../../components/erp/DataTable";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 
 type TherapyIssue =
   | "language_disorder"
@@ -156,7 +157,7 @@ export function SpeechTherapyPage() {
           {cases.map((item) => (
             <tr key={item.id}>
               <td>{item.id}</td>
-              <td>{item.patientName}</td>
+              <td><PatientNameButton patient={item} /></td>
               <td>{item.issueType.replaceAll("_", " ")}</td>
               <td><span className="badge info">{stageLabel[item.stage]}</span></td>
               <td>{item.hearingCoordination ? "Yes" : "No"}</td>

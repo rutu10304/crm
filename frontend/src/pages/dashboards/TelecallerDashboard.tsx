@@ -3,6 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { DataTable } from "../../components/erp/DataTable";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
+import { createQrToken, persistPatientQr } from "../../utils/patientQr";
+import { normalizePatientProfile } from "../../types/patient";
 import { useToast } from "../../layout/ToastProvider";
 import { useAuth } from "../../auth/AuthContext";
 import { api } from "../../services/api";
@@ -16,7 +19,6 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  ArrowRight,
 } from "lucide-react";
 
 // Clinic locations
@@ -160,21 +162,6 @@ const INITIAL_INTELLIGENT_LEADS: IntelligentLead[] = [
   },
 ];
 
-function createQrToken(entryCount: number): string {
-  return `QR-${new Date().getFullYear()}-${String(entryCount + 1).padStart(4, "0")}`;
-}
-
-function createQrPayload(entry: {
-  qrToken: string;
-  patientName: string;
-  mobileNumber: string;
-  clinicName: string;
-  appointmentDate: string;
-  appointmentSlot: string;
-}): string {
-  return JSON.stringify(entry);
-}
-
 export function TelecallerDashboard() {
   const { session } = useAuth();
   const { pushToast } = useToast();
@@ -267,10 +254,13 @@ export function TelecallerDashboard() {
     return leads.filter((lead) => {
       const isFollowUp = lead.status === "callback_requested" || lead.status === "not_answered" || lead.nextFollowUpDate === todayStr;
       
+      const name = lead.patientName ?? "";
+      const mobile = lead.mobileNumber ?? "";
+      const city = lead.city ?? "";
       const matchSearch =
-        lead.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        lead.mobileNumber.includes(searchQuery) ||
-        lead.city.toLowerCase().includes(searchQuery.toLowerCase());
+        name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        mobile.includes(searchQuery) ||
+        city.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchBranch = branchFilter === "all" ? true : lead.assignedBranch === branchFilter;
 
@@ -314,14 +304,24 @@ export function TelecallerDashboard() {
 
     if (bookAppointment && !qrToken) {
       qrToken = createQrToken(leads.length);
-      qrPayload = createQrPayload({
-        qrToken,
-        patientName: selectedLead.patientName,
-        mobileNumber: selectedLead.mobileNumber,
-        clinicName: apptBranch,
-        appointmentDate: apptDate,
-        appointmentSlot: apptSlot,
-      });
+      const persisted = persistPatientQr(
+        normalizePatientProfile({
+          id: selectedLead.id,
+          patientName: selectedLead.patientName,
+          mobileNumber: selectedLead.mobileNumber,
+          city: selectedLead.city,
+          source: selectedLead.source,
+          status: resolvedStatus,
+          appointmentStatus: "booked",
+          assignedBranch: apptBranch,
+          nextFollowUpDate: apptDate,
+          nextFollowUpTime: apptSlot,
+          notes: drawerComment.trim() || selectedLead.notes,
+          priority: selectedLead.priority,
+        }),
+        qrToken
+      );
+      qrPayload = persisted.payload;
 
       const apptResult = createAppointment({
         patientName: selectedLead.patientName,
@@ -334,7 +334,7 @@ export function TelecallerDashboard() {
         bookedBy: session?.fullName ?? "Telecaller",
       });
 
-      if (!apptResult.ok) {
+      if (apptResult.ok === false) {
         pushToast(apptResult.reason, "error");
         return;
       }
@@ -393,14 +393,17 @@ export function TelecallerDashboard() {
       spam: "bg-red-50 text-red-700 border-red-200",
     };
 
+    const label = labels[status] ?? status;
+    const className = classes[status] ?? "bg-slate-100 text-slate-700 border-slate-200";
+
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${classes[status]}`}>
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${className}`}>
         <span className={`w-1.5 h-1.5 rounded-full ${
           ["converted", "trial_started"].includes(status) ? "bg-emerald-500" :
           ["new_lead", "interested"].includes(status) ? "bg-blue-500" :
           ["callback_requested"].includes(status) ? "bg-amber-500" : "bg-rose-500"
         }`}></span>
-        {labels[status]}
+        {label}
       </span>
     );
   }
@@ -470,7 +473,7 @@ export function TelecallerDashboard() {
         <div className="lg:col-span-2">
           <SectionCard title="Today's Scheduled Follow-up Patients" subtitle="Outbound queue of patients requiring follow-up callbacks.">
             <DataTable
-              headers={["Patient", "Mobile", "City", "Status", "Action"]}
+              headers={["Patient", "Mobile", "City", "Status"]}
               hasRows={followUpLeads.length > 0}
               empty="No pending follow-ups for today. Great job!"
             >
@@ -478,7 +481,7 @@ export function TelecallerDashboard() {
                 <tr key={lead.id}>
                   <td>
                     <div className="stack compact">
-                      <span className="font-bold text-slate-800">{lead.patientName}</span>
+                      <PatientNameButton patient={lead} />
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{lead.id}</span>
                     </div>
                   </td>
@@ -486,13 +489,13 @@ export function TelecallerDashboard() {
                   <td className="text-slate-600 font-semibold">{lead.city}</td>
                   <td>{getStatusBadge(lead.status)}</td>
                   <td>
-                    <button
+                    {/* <button
                       onClick={() => setSelectedLead(lead)}
                       className="py-1 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-black rounded-lg transition-all border-none cursor-pointer flex items-center gap-1"
                       type="button"
                     >
-                      Call Log <ArrowRight size={12} />
-                    </button>
+                      view updates <ArrowRight size={12} />
+                    </button> */}
                   </td>
                 </tr>
               ))}

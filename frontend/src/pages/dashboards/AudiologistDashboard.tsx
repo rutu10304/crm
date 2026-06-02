@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { DataTable } from "../../components/erp/DataTable";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 import { useToast } from "../../layout/ToastProvider";
 import { useAuth } from "../../auth/AuthContext";
 import { api } from "../../services/api";
@@ -129,7 +130,7 @@ export function AudiologistDashboard() {
                 .filter((entry) => entry.status !== "billing")
                 .map((entry) => (
                   <tr key={entry.id}>
-                    <td className="font-bold text-slate-800">{entry.patientName}</td>
+                    <td><PatientNameButton patient={entry} /></td>
                     <td>
                       <span className="text-xs font-bold text-slate-500 capitalize">
                         {entry.arrivalType?.replace("_", " ") || "Appointment"}

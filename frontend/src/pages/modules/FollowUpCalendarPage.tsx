@@ -8,6 +8,7 @@ import {
 } from "../../data/telecallerStore";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 import { DataTable } from "../../components/erp/DataTable";
 import { useToast } from "../../layout/ToastProvider";
 
@@ -108,7 +109,7 @@ export function FollowUpCalendarPage() {
         >
           {filtered.map((item) => (
             <tr key={item.id}>
-              <td>{item.patientName}</td>
+              <td><PatientNameButton patient={item} /></td>
               <td>{item.city}</td>
               <td>{item.mobileNumber}</td>
               <td>{item.followUpReason}</td>

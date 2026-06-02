@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { DataTable } from "../../components/erp/DataTable";
 import { PageHeader } from "../../components/erp/PageHeader";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 import { SectionCard } from "../../components/erp/SectionCard";
 import {
   listQueueEntries,
@@ -80,7 +81,7 @@ export function QueueBoardPage() {
           {visibleItems.map((item) => (
             <tr key={item.id}>
               <td>{item.id}</td>
-              <td>{item.patientName}</td>
+              <td><PatientNameButton patient={item} /></td>
               <td><span className="badge info">{item.status.replace("_", " ")}</span></td>
               <td>
                 <span className={`badge ${waitClass(minutesSince(item.waitingSinceIso))}`}>

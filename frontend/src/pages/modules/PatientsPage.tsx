@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { DataTable } from "../../components/erp/DataTable";
 import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 
 type PatientStatus = "active" | "follow_up" | "trial" | "completed";
 
@@ -102,7 +103,18 @@ export function PatientsPage() {
             {pageRecords.map((item) => (
               <tr key={item.id}>
                 <td>{item.id}</td>
-                <td>{item.name}</td>
+                <td>
+                  <PatientNameButton
+                    patient={{
+                      id: item.id,
+                      name: item.name,
+                      phone: item.phone,
+                      city: item.city,
+                      status: item.status,
+                      stage: item.stage,
+                    }}
+                  />
+                </td>
                 <td>{item.city}</td>
                 <td>{item.phone}</td>
                 <td>{item.stage}</td>

@@ -2,8 +2,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { AppShell } from "./layout/AppShell";
 import { ToastProvider } from "./layout/ToastProvider";
+import { PatientModalProvider } from "./context/PatientModalProvider";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
+import { PatientQrPublicPage } from "./pages/public/PatientQrPublicPage";
 import { UnauthorizedPage } from "./pages/UnauthorizedPage";
 import { AdminUsersPage } from "./pages/modules/AdminUsersPage";
 import { AppointmentsPage } from "./pages/modules/AppointmentsPage";
@@ -52,9 +54,11 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
+        <PatientModalProvider>
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/p/:token" element={<PatientQrPublicPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
             <Route element={<ProtectedRoute />}>
@@ -88,6 +92,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
+        </PatientModalProvider>
       </ToastProvider>
     </AuthProvider>
   );

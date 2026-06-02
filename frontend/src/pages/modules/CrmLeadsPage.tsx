@@ -12,6 +12,9 @@ import { api } from "../../services/api";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { DataTable } from "../../components/erp/DataTable";
 import { useToast } from "../../layout/ToastProvider";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
+import { getPatientQrCodeUrl, persistPatientQr } from "../../utils/patientQr";
+import { normalizePatientProfile } from "../../types/patient";
 import {
   User,
   CheckCircle,
@@ -246,20 +249,6 @@ const INITIAL_INTELLIGENT_LEADS: IntelligentLead[] = [
 
 function createQrToken(entryCount: number): string {
   return `ST-${String(entryCount + 1).padStart(3, "0")}`;
-}
-
-function createQrPayload(entry: {
-  qrToken: string;
-  patientName: string;
-  mobileNumber: string;
-  clinicName: string;
-  appointmentDate: string;
-  appointmentSlot: string;
-  branchPhone?: string;
-  branchAddress?: string;
-  googleLocation?: string;
-}): string {
-  return JSON.stringify(entry);
 }
 
 export function CrmLeadsPage() {
@@ -544,21 +533,7 @@ export function CrmLeadsPage() {
     }
 
     // Process saving
-    const bDetails = getBranchDetails(clinicName);
     const qrToken = generateQr ? createQrToken(leads.length) : null;
-    const qrPayload = generateQr && qrToken
-      ? createQrPayload({
-          qrToken,
-          patientName: patientName.trim(),
-          mobileNumber: mobileNumber.trim(),
-          clinicName: clinicName.trim(),
-          appointmentDate,
-          appointmentSlot,
-          branchPhone: bDetails.phone,
-          branchAddress: bDetails.address,
-          googleLocation: bDetails.locationLink,
-        })
-      : null;
 
     const newLead: IntelligentLead = {
       id: `LD-${leads.length + 2001}`,
@@ -583,8 +558,29 @@ export function CrmLeadsPage() {
       callDurationSec: 60,
       createdAt: new Date().toISOString(),
       qrToken,
-      qrPayload,
+      qrPayload: null,
     };
+
+    if (generateQr && qrToken) {
+      newLead.qrPayload = persistPatientQr(
+        normalizePatientProfile({
+          id: newLead.id,
+          patientName: newLead.patientName,
+          mobileNumber: newLead.mobileNumber,
+          city: newLead.city,
+          source: newLead.source,
+          status: newLead.status,
+          appointmentStatus: newLead.appointmentStatus,
+          assignedBranch: newLead.assignedBranch,
+          assignedAudiologist: newLead.assignedAudiologist,
+          nextFollowUpDate: newLead.nextFollowUpDate,
+          nextFollowUpTime: newLead.nextFollowUpTime,
+          notes: newLead.notes,
+          priority: newLead.priority,
+        }),
+        qrToken
+      ).payload;
+    }
 
     if (generateQr) {
       // Try database appointment booking first
@@ -943,7 +939,11 @@ export function CrmLeadsPage() {
                     className="mt-4 p-4 bg-white border border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center gap-3 max-w-sm mx-auto"
                   >
                     <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-inner inline-flex">
-                      <QRCodeCanvas id="qr-canvas-crm" value={lastSavedEntry.qrPayload} size={130} />
+                      <QRCodeCanvas
+                        id="qr-canvas-crm"
+                        value={getPatientQrCodeUrl(lastSavedEntry.qrToken!)}
+                        size={130}
+                      />
                     </div>
                     <div className="w-full">
                       <h4 className="font-bold text-slate-800 text-xs">{lastSavedEntry.patientName}</h4>
@@ -1148,7 +1148,7 @@ export function CrmLeadsPage() {
           {filteredLeads.map((entry) => (
             <tr key={entry.id} className="hover:bg-slate-50/50 transition-colors">
               <td className="font-semibold text-slate-700">{entry.id}</td>
-              <td className="font-bold text-slate-800">{entry.patientName}</td>
+              <td><PatientNameButton patient={entry} /></td>
               <td className="text-slate-600 font-medium">{entry.mobileNumber}</td>
               <td className="text-slate-600 font-medium">{entry.city}</td>
               <td>{getStatusBadge(entry.status)}</td>
@@ -1205,7 +1205,11 @@ export function CrmLeadsPage() {
               </h3>
 
               <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner inline-flex mx-auto">
-                <QRCodeCanvas id="qr-canvas-modal-crm" value={qrModalEntry.qrPayload} size={150} />
+                <QRCodeCanvas
+                  id="qr-canvas-modal-crm"
+                  value={getPatientQrCodeUrl(qrModalEntry.qrToken!)}
+                  size={150}
+                />
               </div>
 
               <div>

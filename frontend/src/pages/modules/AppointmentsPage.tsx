@@ -5,12 +5,15 @@ import {
 } from "../../data/appointmentStore";
 import { DataTable } from "../../components/erp/DataTable";
 import { PageHeader } from "../../components/erp/PageHeader";
+import { PatientNameButton } from "../../components/patient/PatientNameButton";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { useToast } from "../../layout/ToastProvider";
 import { QRCodeCanvas } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, Share2, Copy, X, Phone, MapPin } from "lucide-react";
 import { api } from "../../services/api";
+import { getPatientQrCodeUrl, persistPatientQr } from "../../utils/patientQr";
+import { normalizePatientProfile } from "../../types/patient";
 
 const BRANCHES_MAP: Record<string, { phone: string; address: string; locationLink: string }> = {
   "delhi gate": {
@@ -77,36 +80,38 @@ export function AppointmentsPage() {
   // Selected appointment for the modal popup when clicking "Open"
   const [selectedQrRecord, setSelectedQrRecord] = useState<AppointmentRecord | null>(null);
 
-  const qrPayload = useMemo(() => {
-    if (!lastBookedRecord) return "";
-    const bDetails = getBranchDetails(lastBookedRecord.clinicName);
-    return JSON.stringify({
-      qrToken: lastBookedRecord.id,
-      patientName: lastBookedRecord.patientName,
-      mobileNumber: lastBookedRecord.mobileNumber,
-      clinicName: lastBookedRecord.clinicName,
-      appointmentDate: lastBookedRecord.date,
-      appointmentSlot: lastBookedRecord.slot,
-      branchPhone: bDetails.phone,
-      branchAddress: bDetails.address,
-      googleLocation: bDetails.locationLink,
-    });
+  function syncAppointmentQr(record: AppointmentRecord) {
+    persistPatientQr(
+      normalizePatientProfile({
+        id: record.id,
+        patientName: record.patientName,
+        mobileNumber: record.mobileNumber,
+        assignedBranch: record.clinicName,
+        nextFollowUpDate: record.date,
+        nextFollowUpTime: record.slot,
+        appointmentStatus: record.status,
+        qrToken: record.id,
+      }),
+      record.id
+    );
+  }
+
+  const qrScanUrl = useMemo(
+    () => (lastBookedRecord ? getPatientQrCodeUrl(lastBookedRecord.id) : ""),
+    [lastBookedRecord]
+  );
+
+  const modalQrScanUrl = useMemo(
+    () => (selectedQrRecord ? getPatientQrCodeUrl(selectedQrRecord.id) : ""),
+    [selectedQrRecord]
+  );
+
+  useEffect(() => {
+    if (lastBookedRecord) syncAppointmentQr(lastBookedRecord);
   }, [lastBookedRecord]);
 
-  const modalQrPayload = useMemo(() => {
-    if (!selectedQrRecord) return "";
-    const bDetails = getBranchDetails(selectedQrRecord.clinicName);
-    return JSON.stringify({
-      qrToken: selectedQrRecord.id,
-      patientName: selectedQrRecord.patientName,
-      mobileNumber: selectedQrRecord.mobileNumber,
-      clinicName: selectedQrRecord.clinicName,
-      appointmentDate: selectedQrRecord.date,
-      appointmentSlot: selectedQrRecord.slot,
-      branchPhone: bDetails.phone,
-      branchAddress: bDetails.address,
-      googleLocation: bDetails.locationLink,
-    });
+  useEffect(() => {
+    if (selectedQrRecord) syncAppointmentQr(selectedQrRecord);
   }, [selectedQrRecord]);
 
   function handleCopyDetails(record: AppointmentRecord) {
@@ -257,7 +262,7 @@ export function AppointmentsPage() {
           {appointments.map((entry) => (
             <tr key={entry.id}>
               <td className="font-mono text-xs font-bold text-slate-500">{entry.id}</td>
-              <td className="font-bold text-slate-800">{entry.patientName}</td>
+              <td><PatientNameButton patient={entry} /></td>
               <td className="text-slate-600 font-medium">{entry.mobileNumber}</td>
               <td className="text-xs text-blue-600 font-bold">
                 {entry.clinicName} • {entry.date} ({entry.slot})
@@ -286,7 +291,7 @@ export function AppointmentsPage() {
         {lastBookedRecord ? (
           <div className="flex flex-col items-center justify-center text-center gap-4 py-2">
             <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner inline-flex animate-fade-in">
-              <QRCodeCanvas id="qr-canvas-last" value={qrPayload} size={150} />
+              <QRCodeCanvas id="qr-canvas-last" value={qrScanUrl} size={150} />
             </div>
             <div className="w-full">
               <h4 className="font-bold text-slate-800 text-sm">{lastBookedRecord.patientName}</h4>
@@ -388,7 +393,7 @@ export function AppointmentsPage() {
               </h3>
 
               <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-inner inline-flex mx-auto">
-                <QRCodeCanvas id="qr-canvas-modal" value={modalQrPayload} size={150} />
+                <QRCodeCanvas id="qr-canvas-modal" value={modalQrScanUrl} size={150} />
               </div>
 
               <div>

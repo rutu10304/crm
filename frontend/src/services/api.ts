@@ -3,6 +3,7 @@ import type { TelecallerEntry } from "../data/telecallerStore";
 import type { AppointmentRecord, AppointmentSlot } from "../data/appointmentStore";
 import type { QueueEntry } from "../data/queueStore";
 import type { ReceptionDaySummary } from "../data/receptionStore";
+import type { PatientQrData } from "../utils/patientQr";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -199,6 +200,21 @@ export const api = {
         return { ok: false, error: "Failed to connect to backend." };
       }
     }
+  },
+
+  // ==========================================
+  // PUBLIC (no login — for QR scan landing page)
+  // ==========================================
+  public: {
+    async getPatientByToken(
+      qrToken: string
+    ): Promise<{ found: boolean; patient?: PatientQrData }> {
+      const response = await fetch(
+        `${API_BASE_URL}/public/patient/${encodeURIComponent(qrToken.trim())}`
+      );
+      if (!response.ok) throw new Error("Failed to load patient");
+      return await response.json();
+    },
   },
 
   // ==========================================

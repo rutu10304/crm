@@ -19,6 +19,7 @@ import { PageHeader } from "../../components/erp/PageHeader";
 import { SectionCard } from "../../components/erp/SectionCard";
 import { useToast } from "../../layout/ToastProvider";
 import { api } from "../../services/api";
+import { extractQrTokenFromScan, parsePatientQrPayload } from "../../utils/patientQr";
 
 const arrivalOptions = ["walk_in", "appointment", "call_converted"] as const;
 type ArrivalType = (typeof arrivalOptions)[number];
@@ -191,10 +192,31 @@ export function ReceptionCheckInPage() {
 
   async function scanAppointmentToken() {
     setScanError("");
-    
+
+    const parsedQr = parsePatientQrPayload(scanToken);
+    const tokenLookup = extractQrTokenFromScan(scanToken);
+
+    if (parsedQr) {
+      setLinkedEntry({
+        id: parsedQr.patientId,
+        patientName: parsedQr.patientName,
+        mobileNumber: parsedQr.mobileNumber,
+        clinicName: parsedQr.assignedBranch ?? "",
+        appointmentDate: parsedQr.appointmentDate ?? "",
+        appointmentSlot: parsedQr.appointmentSlot ?? "",
+        qrToken: parsedQr.qrToken,
+      } as TelecallerEntry);
+      setPatient(parsedQr.patientName);
+      setFullName(parsedQr.patientName);
+      setMobile(parsedQr.mobileNumber);
+      setArrivalType("appointment");
+      setReferenceSource("Telecaller");
+      return;
+    }
+
     // Try database check first
     try {
-      const dbRes = await api.telecaller.findByQrToken(scanToken);
+      const dbRes = await api.telecaller.findByQrToken(tokenLookup);
       if (dbRes.found && dbRes.entry) {
         const found = dbRes.entry;
         setLinkedEntry(found);
@@ -210,7 +232,7 @@ export function ReceptionCheckInPage() {
     }
 
     // Fallback to local
-    const found = findEntryByQrToken(scanToken);
+    const found = findEntryByQrToken(tokenLookup);
     if (!found) {
       setLinkedEntry(null);
       setScanError("No appointment found for this token.");

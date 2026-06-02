@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { getDefaultRouteForRole } from "../routing/defaultRoute";
 import { ALL_ROLES, ROLE_LABELS, type Role } from "../types/auth";
 import { useToast } from "../layout/ToastProvider";
+import { SoftoneLogo } from "../components/brand/SoftoneLogo";
 
 interface LocationState {
   from?: {
@@ -57,6 +58,9 @@ export function LoginPage() {
     <div className="center-screen">
       <form className="card auth-card stack" onSubmit={handleSubmit}>
         <header className="stack compact">
+          <div className="w-full max-w-[280px] mx-auto mb-2">
+            <SoftoneLogo />
+          </div>
           <h1>Softone ERP Login</h1>
           <p className="muted">
             Admin-controlled access with role and branch scoping.

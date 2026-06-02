@@ -60,6 +60,37 @@ body {
   padding-bottom: 1rem;
 }
 
+.softone-logo {
+  line-height: 0;
+}
+
+.softone-logo img {
+  display: block;
+  object-fit: contain;
+}
+
+.patient-name-link {
+  font: inherit;
+}
+
+.status-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.875rem;
+  color: #334155;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.status-input:focus {
+  outline: none;
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
 .sidebar-subtitle-holder {
   min-height: 20px;
   margin-top: 0.35rem;
